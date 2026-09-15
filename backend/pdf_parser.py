@@ -209,7 +209,7 @@ def generate_email_draft(po_data: POData) -> dict:
     delivery = po_data.delivery_date or "__________"
     plant = po_data.plant or "__________"
 
-    subject = f"Purchase Order #{po_num}"
+    subject = f"Purchase Order #{po_num} - {vendor}"
 
     body = (
         f"Dear {vendor},\n"
