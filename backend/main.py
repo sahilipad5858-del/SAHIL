@@ -96,6 +96,7 @@ async def generate_eml(request: SendEmailRequest, file_id: str = None):
     import base64
 
     msg = MIMEMultipart()
+    msg["X-Unsent"] = "1"
     msg["From"] = "sahil.sapate@malpani.com"
     msg["To"] = request.to
     msg["Subject"] = request.subject
