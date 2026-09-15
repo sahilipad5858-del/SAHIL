@@ -85,7 +85,7 @@ function App() {
           cc: emailDraft.cc,
           subject: emailDraft.subject,
           body: emailDraft.body,
-          attachment_name: filename ? `PO_${filename}` : undefined,
+          attachment_name: filename ? `PO_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}` : undefined,
         }),
       })
       const data = await res.json()
