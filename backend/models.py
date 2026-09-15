@@ -10,6 +10,9 @@ class POData(BaseModel):
     payment_terms: Optional[str] = None
     shipping_address: Optional[str] = None
     vendor_email: Optional[str] = None
+    buyer_name: Optional[str] = None
+    items: Optional[list] = None
+    total_amount: Optional[str] = None
     raw_text: Optional[str] = None
 
 
