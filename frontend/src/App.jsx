@@ -73,13 +73,32 @@ function App() {
     setEmailDraft(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSend = () => {
-    const to = encodeURIComponent(emailDraft.to || '')
-    const cc = encodeURIComponent(emailDraft.cc || '')
-    const subject = encodeURIComponent(emailDraft.subject || '')
-    const body = encodeURIComponent(emailDraft.body || '')
-    const mailtoUrl = `mailto:${to}?cc=${cc}&subject=${subject}&body=${body}`
-    window.location.href = mailtoUrl
+  const handleSend = async () => {
+    try {
+      const res = await fetch(`/api/generate-eml?file_id=${fileId || ''}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: emailDraft.to,
+          cc: emailDraft.cc,
+          subject: emailDraft.subject,
+          body: emailDraft.body,
+          attachment_name: filename ? `PO_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}` : undefined,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to generate email file')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'email.eml'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   const reset = () => {

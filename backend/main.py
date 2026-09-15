@@ -1,5 +1,7 @@
 import os
 import uuid
+import email.utils
+from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -83,6 +85,48 @@ async def download_po(file_id: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path, media_type="application/pdf", filename=f"PO_{file_id}.pdf")
+
+
+@app.post("/api/generate-eml")
+async def generate_eml(request: SendEmailRequest, file_id: str = None):
+    """Generate a .eml file with email fields and attachment."""
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.application import MIMEApplication
+    import base64
+
+    msg = MIMEMultipart()
+    msg["From"] = "sahil.sapate@malpani.com"
+    msg["To"] = request.to
+    msg["Subject"] = request.subject
+    if request.cc:
+        msg["Cc"] = request.cc
+    msg["Date"] = email.utils.formatdate(localtime=True)
+    msg["Message-ID"] = email.utils.make_msgid()
+
+    msg.attach(MIMEText(request.body, "plain"))
+
+    if file_id:
+        attachment_path = os.path.join(UPLOAD_DIR, f"{file_id}.pdf")
+        if os.path.exists(attachment_path):
+            att_name = request.attachment_name or f"PO_{file_id}.pdf"
+            with open(attachment_path, "rb") as f:
+                att = MIMEApplication(f.read(), _subtype="pdf")
+                att.add_header("Content-Disposition", "attachment", filename=att_name)
+                msg.attach(att)
+
+    eml_dir = "eml_files"
+    os.makedirs(eml_dir, exist_ok=True)
+    eml_path = os.path.join(eml_dir, f"PO_{file_id or uuid.uuid4()}.eml")
+    with open(eml_path, "w", encoding="utf-8") as f:
+        f.write(msg.as_string())
+
+    return FileResponse(
+        eml_path,
+        media_type="message/rfc822",
+        filename=f"PO_{request.subject.split('#')[-1].split('-')[0].strip() if '#' in request.subject else 'email'}.eml",
+        headers={"Content-Disposition": f'attachment; filename="email.eml"'}
+    )
 
 
 if __name__ == "__main__":
