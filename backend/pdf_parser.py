@@ -19,144 +19,178 @@ def extract_po_data(pdf_path: str) -> POData:
 
     po_data = POData(raw_text=raw_text)
 
-    # Normalize: collapse multiple spaces, strip lines
-    lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
-    normalized = "\n".join(lines)
+    # Normalize: add space after colons, fix merged words
+    # "City :Sangamner" -> "City : Sangamner"
+    # "PurchaseOrderNo" -> "Purchase Order No"
+    normalized = raw_text
+    normalized = re.sub(r'(\w)(:\s)', r'\1 ', normalized)
+    normalized = re.sub(r'(\w)(:)', r'\1 ', normalized)
+
+    lines = [line.strip() for line in normalized.split("\n") if line.strip()]
+    full_text = "\n".join(lines)
 
     # --- PO Number ---
-    # Matches: "Purchase Order No: 40008434", "P.O. No: 12345", "PO#: ABC-123"
+    # "PurchaseOrderNo : 40008434" or "Purchase Order No : 40008434"
     m = re.search(
-        r'(?:Purchase\s*Order|P\.?O\.?)\s*(?:Number|No|#|\.?)\s*[:=\-]?\s*([A-Za-z0-9][\w\-/]*)',
-        normalized, re.IGNORECASE
+        r'(?:Purchase\s*Order\s*No|P\.?O\.?\s*(?:No|Number|#))\s*[:=\-]?\s*(\d{4,})',
+        full_text, re.IGNORECASE
     )
     if m:
         po_data.po_number = m.group(1).strip()
 
     # --- PO Date ---
-    # Matches: "Date: 15.09.2026", "Date: 15/09/2026", "Dated: 15 Sep 2026"
+    # "Date : 15.09.2026"
     m = re.search(
-        r'(?:Date|Dated|Order\s*Date|PO\s*Date)\s*[:=\-]?\s*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})',
-        normalized, re.IGNORECASE
+        r'(?:^|\n)\s*Date\s*[:=\-]?\s*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})',
+        full_text, re.IGNORECASE
     )
     if m:
         po_data.po_date = m.group(1).strip()
-    else:
-        m = re.search(
-            r'(?:Date|Dated)\s*[:=\-]?\s*(\d{1,2}\s+\w+\s+\d{2,4})',
-            normalized, re.IGNORECASE
-        )
-        if m:
-            po_data.po_date = m.group(1).strip()
 
-    # --- Vendor Name (the "TO:" section vendor) ---
-    # Format: "TO: Vendor Code - XXXX\nVendorName\nAddress..."
+    # --- Vendor Name ---
+    # "TO, VendorCode-10011388\nMohitComputers" - TO can be mid-line
     m = re.search(
-        r'TO:\s*(?:Vendor\s*Code\s*[:=\-]?\s*[\w\-]+\s*\n\s*)(.+)',
-        normalized, re.IGNORECASE
+        r'TO[,:\s]*(?:Vendor\s*Code\s*[-=\s]*)?\d+\s*\n\s*(.+)',
+        full_text, re.IGNORECASE
     )
     if m:
-        po_data.vendor_name = m.group(1).strip()
+        val = m.group(1).strip()
+        val = re.split(r'\n|(?:YAshwant|Vidyanagar|City|District|Phone|Email|GSTN)', val, flags=re.IGNORECASE)[0].strip()
+        val = re.sub(r'([a-z])([A-Z])', r'\1 \2', val)
+        po_data.vendor_name = val
     else:
-        # Fallback: look for vendor name after "TO:" on same line
-        m = re.search(r'TO:\s*(.+)', normalized, re.IGNORECASE)
-        if m:
-            val = m.group(1).strip()
-            if val and not re.match(r'Vendor\s*Code', val, re.IGNORECASE):
-                po_data.vendor_name = val
+        # Fallback: line after "TO," that's not a field label
+        for i, line in enumerate(lines):
+            if re.search(r'TO[,:\s]', line, re.IGNORECASE):
+                # Check next few lines for vendor name
+                for j in range(i+1, min(i+4, len(lines))):
+                    candidate = lines[j].strip()
+                    if candidate and not re.match(r'(?:YAshwant|Vidyanagar|City|District|Phone|Email|GSTN|Date|GST|Plant|Our|Your)', candidate, re.IGNORECASE):
+                        val = re.sub(r'([a-z])([A-Z])', r'\1 \2', candidate)
+                        po_data.vendor_name = val
+                        break
+                break
 
-    # --- Vendor Email (in the TO: vendor block) ---
-    # Find the TO: block and extract email from it
-    to_block_match = re.search(r'TO:.*?(?=Purchase\s*Order|Items|ITEMS|\n\n\n)', normalized, re.IGNORECASE | re.DOTALL)
-    if to_block_match:
-        to_block = to_block_match.group(0)
-        email_match = re.search(r'Email:\s*([\w\.\-]+@[\w\.\-]+\.\w{2,})', to_block, re.IGNORECASE)
-        if email_match:
-            po_data.vendor_email = email_match.group(1)
-        else:
-            # Fallback: any email in the block
-            email_match = re.search(r'([\w\.\-]+@[\w\.\-]+\.\w{2,})', to_block, re.IGNORECASE)
-            if email_match:
-                po_data.vendor_email = email_match.group(1)
-    else:
-        # Fallback: find all emails, skip buyer emails
-        all_emails = re.findall(r'([\w\.\-]+@[\w\.\-]+\.\w{2,})', normalized, re.IGNORECASE)
-        buyer_emails = re.findall(r'Email:\s*([\w\.\-]+@[\w\.\-]+\.\w{2,})', normalized[:normalized.find('TO:') if 'TO:' in normalized else 0], re.IGNORECASE)
-        vendor_emails = [e for e in all_emails if e not in buyer_emails]
-        if vendor_emails:
-            po_data.vendor_email = vendor_emails[0]
+    # --- Vendor Email ---
+    # Find the TO block and get email from there
+    to_match = re.search(r'TO[,:\s].*?(?=Purchase\s*Order|We\s*are\s*pleased)', full_text, re.IGNORECASE | re.DOTALL)
+    if to_match:
+        to_block = to_match.group(0)
+        m = re.search(r'Email\s*[:=\-]?\s*([\w\.\-]+@[\w\.\-]+\.\w{2,})', to_block, re.IGNORECASE)
+        if m:
+            po_data.vendor_email = m.group(1)
+    if not po_data.vendor_email:
+        # Fallback: find all emails, use the second one (first is buyer)
+        all_emails = re.findall(r'([\w\.\-]+@[\w\.\-]+\.\w{2,})', full_text, re.IGNORECASE)
+        if len(all_emails) >= 2:
+            po_data.vendor_email = all_emails[1]  # Second email is vendor
+        elif all_emails:
+            po_data.vendor_email = all_emails[0]
 
     # --- Delivery Date ---
-    m = re.search(
-        r'(?:Delivery|Ship|Expected|Required|Need|ETA)\s*(?:Date|By)?\s*[:=\-]?\s*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})',
-        normalized, re.IGNORECASE
-    )
+    m = re.search(r'Delivery\s*Period\s*[:=\-]?\s*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})', full_text, re.IGNORECASE)
     if m:
         po_data.delivery_date = m.group(1).strip()
 
     # --- Payment Terms ---
-    payment_patterns = [
-        r'(?:Payment\s*Terms?|Terms?\s*(?:of\s*)?Payment|P\.?T\.?)\s*[:=\-]?\s*(.+)',
-        r'(Net\s*\d+)',
-        r'(COD|CIA|CWO|CAD)',
-    ]
-    for pat in payment_patterns:
-        m = re.search(pat, normalized, re.IGNORECASE)
-        if m:
-            val = m.group(1).strip().split("\n")[0].strip()
-            if val:
-                po_data.payment_terms = val
-                break
+    m = re.search(r'Payment\s*Terms?\s*[:=\-]?\s*(.+?)(?:\n|$)', full_text, re.IGNORECASE)
+    if m:
+        val = m.group(1).strip()
+        # Clean merged words
+        val = re.sub(r'(\d+)(Working)', r'\1 \2', val)
+        val = re.sub(r'(Working)(days)', r'\1 \2', val)
+        val = re.sub(r'(days)(from)', r'\1 \2', val)
+        val = re.sub(r'(from)(the)', r'\1 \2', val)
+        val = re.sub(r'(the)(Gate)', r'\1 \2', val)
+        val = re.sub(r'(Gate)(Entry)', r'\1 \2', val)
+        val = re.sub(r'(Entry)(date)', r'\1 \2', val)
+        po_data.payment_terms = val
 
-    # --- Shipping Address ---
-    ship_patterns = [
-        r'(?:Ship\s*To|Shipping\s*(?:Address|Location)|Delivery\s*Address|Deliver\s*To)\s*[:=\-]?\s*\n?\s*(.+?)(?:\n\s*\n|\n(?:(?:Phone|Tel|Email|Fax|Contact)\s*[:=\-]))',
-        r'(?:Ship\s*To|Shipping\s*Address|Delivery\s*Address)\s*[:=\-]?\s*\n?\s*(.+)',
-    ]
-    for pat in ship_patterns:
-        m = re.search(pat, normalized, re.IGNORECASE | re.DOTALL)
-        if m:
-            val = re.sub(r'\s+', ' ', m.group(1)).strip()
-            if val and len(val) > 2:
-                po_data.shipping_address = val
-                break
+    # --- Shipping Address (To be delivered at) ---
+    m = re.search(r'To\s*be\s*delivered\s*at\s*[:=\-]?\s*(.+?)(?:\n|$)', full_text, re.IGNORECASE)
+    if m:
+        val = m.group(1).strip()
+        # Fix double commas
+        val = re.sub(r',,+', ',', val)
+        po_data.shipping_address = val
+    else:
+        # Fallback: build from City/District/State/Pin
+        city = re.search(r'City\s*[:=\-]?\s*(\w+)', full_text, re.IGNORECASE)
+        dist = re.search(r'District\s*[:=\-]?\s*(\w+)', full_text, re.IGNORECASE)
+        state = re.search(r'State\s*[:=\-]?\s*(\w+)', full_text, re.IGNORECASE)
+        pin = re.search(r'Pin\s*[:=\-]?\s*(\d+)', full_text, re.IGNORECASE)
+        parts = []
+        if city: parts.append(city.group(1))
+        if dist: parts.append(dist.group(1))
+        if state: parts.append(state.group(1))
+        if pin: parts.append(pin.group(1))
+        if parts:
+            po_data.shipping_address = ", ".join(parts)
 
-    # --- Buyer Name (the company issuing the PO) ---
-    # First line after "PURCHASE ORDER" header is usually the buyer
-    buyer_match = re.search(r'(?:M/s\.?|M/s)\s*(.+)', normalized, re.IGNORECASE)
-    if buyer_match:
-        po_data.buyer_name = buyer_match.group(1).strip().split("\n")[0].strip()
+    # --- Buyer Name ---
+    m = re.search(r'M/s\s*([A-Za-z][\w\s&]+?)(?:\s*\n|\s*50/2|\s*Regd)', full_text, re.IGNORECASE)
+    if m:
+        val = m.group(1).strip()
+        val = re.sub(r'([a-z])([A-Z])', r'\1 \2', val)
+        po_data.buyer_name = val
 
-    # --- Items (line items with description, qty, rate) ---
+    # --- Items ---
     items = []
-    item_blocks = re.split(r'Sr\s*No\s*[:=\-]?\s*\d+', normalized, flags=re.IGNORECASE)
-    for block in item_blocks[1:]:  # Skip first (before any Sr No)
-        item = {}
-        desc_m = re.search(r'(?:Item\s*)?Description\s*[:=\-]?\s*(.+)', block, re.IGNORECASE)
-        if desc_m:
-            item['description'] = desc_m.group(1).strip().split("\n")[0].strip()
-        qty_m = re.search(r'Quantity\s*[:=\-]?\s*([\d.]+)', block, re.IGNORECASE)
-        if qty_m:
-            item['quantity'] = qty_m.group(1)
-        rate_m = re.search(r'Rate\s*(?:/\s*Unit)?\s*(?:\(INR\))?\s*[:=\-]?\s*([\d,.]+)', block, re.IGNORECASE)
-        if rate_m:
-            item['rate'] = rate_m.group(1)
-        value_m = re.search(r'Value\s*[:=\-]?\s*([\d,.]+)', block, re.IGNORECASE)
-        if value_m:
-            item['value'] = value_m.group(1)
-        if item:
-            items.append(item)
+
+    # Try space-separated format: "1 DataCable5mtr 1.00 EA 650.00 -99.15 550.85"
+    # Must start with line number (small integer) followed by description
+    item_rows = re.findall(
+        r'(?:^|\n)\s*(\d{1,3})\s+([A-Za-z][\w\s]+?)\s+([\d,.]+)\s+(EA|NOS|PCS|KG|MT|SET|BOX|UNT|NO|Nos|EA)\s+([\d,.]+)\s+([-\d,.]+)\s+([\d,.]+)',
+        full_text, re.IGNORECASE
+    )
+    for row in item_rows:
+        sr, desc, qty, unit, rate, disc, value = row
+        desc = re.sub(r'([a-z])([A-Z])', r'\1 \2', desc.strip())
+        desc = re.sub(r'([a-z])(\d)', r'\1 \2', desc)  # "Cable5mtr" -> "Cable 5mtr"
+        desc = re.sub(r'(\d)([a-zA-Z])', r'\1 \2', desc)  # "5mtr" -> "5 mtr"
+        desc = re.sub(r'Remark.*', '', desc, flags=re.IGNORECASE).strip()
+        items.append({
+            'sr_no': sr.strip(),
+            'description': desc,
+            'quantity': qty.strip(),
+            'unit': unit.strip(),
+            'rate': rate.strip(),
+            'discount': disc.strip().split('\n')[0].strip(),
+            'value': value.strip().split('\n')[0].strip(),
+        })
+
+    # Fallback: pipe-separated table rows
+    if not items:
+        pipe_rows = re.findall(
+            r'(\d{1,3})\s*\|\s*(.+?)\s*\|.*?([\d,.]+)\s*\|\s*(EA|NOS|PCS|KG|MT|SET|BOX|UNT|NO|Nos)\s*\|\s*([\d,.]+)\s*\|.*?([-\d,.]+)\s*\|.*?([\d,.]+)',
+            full_text, re.IGNORECASE
+        )
+        for row in pipe_rows:
+            sr, desc, qty, unit, rate, disc, value = row
+            desc = re.sub(r'([a-z])([A-Z])', r'\1 \2', desc.strip().split('\n')[0])
+            desc = re.sub(r'([a-z])(\d)', r'\1 \2', desc)
+            desc = re.sub(r'(\d)([a-zA-Z])', r'\1 \2', desc)
+            desc = re.sub(r'Remark.*', '', desc, flags=re.IGNORECASE).strip()
+            items.append({
+                'sr_no': sr.strip(),
+                'description': desc,
+                'quantity': qty.strip(),
+                'unit': unit.strip(),
+                'rate': rate.strip(),
+                'discount': disc.strip(),
+                'value': value.strip(),
+            })
+
     po_data.items = items
 
     # --- Total Amount ---
-    total_patterns = [
-        r'(?:Grand\s*)?Total\s*(?:Value|Amount|INR)?\s*[:=\-]?\s*[\$₹]?\s*([\d,]+\.?\d*)',
-        r'(?:Sub\s*Total|Amount\s*Payable)\s*[:=\-]?\s*[\$₹]?\s*([\d,]+\.?\d*)',
-    ]
-    for pat in total_patterns:
-        m = re.search(pat, normalized, re.IGNORECASE)
+    m = re.search(r'Total\s*Amount\s*[:=\-]?\s*([\d,.]+)', full_text, re.IGNORECASE)
+    if m:
+        po_data.total_amount = m.group(1).strip()
+    else:
+        m = re.search(r'(?:Grand\s*)?Total\s*[:=\-]?\s*([\d,.]+)', full_text, re.IGNORECASE)
         if m:
             po_data.total_amount = m.group(1).strip()
-            break
 
     return po_data
 
@@ -174,7 +208,6 @@ def generate_email_draft(po_data: POData) -> dict:
 
     subject = f"Acknowledgment of Purchase Order #{po_num}"
 
-    # Build items list for email
     items_text = ""
     if po_data.items:
         for i, item in enumerate(po_data.items, 1):
