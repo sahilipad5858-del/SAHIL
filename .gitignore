@@ -12,3 +12,6 @@ frontend/dist/
 # IDE
 .vscode/
 .idea/
+
+# OS
+Thumbs.db
