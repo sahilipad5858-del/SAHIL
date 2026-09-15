@@ -2,6 +2,7 @@
 backend/.env
 backend/uploads/
 backend/venv/
+backend/eml_files/
 __pycache__/
 
 # Frontend
