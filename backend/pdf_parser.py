@@ -16,7 +16,7 @@ def extract_po_data(pdf_path: str) -> POData:
 
     # Extract PO Number
     po_num_match = re.search(
-        r'(?:Purchase\s*Order\s*(?:Number|No|#|Number:|No:|#:)?)\s*[:\-]?\s*([A-Z0-9\-]+)',
+        r'(?:PO|Purchase\s*Order)\s*(?:Number|No|#)?\s*[:\-]\s*([A-Z0-9][\w\-]*)',
         raw_text, re.IGNORECASE
     )
     if po_num_match:
@@ -64,7 +64,7 @@ def extract_po_data(pdf_path: str) -> POData:
 
     # Extract Shipping Address
     ship_match = re.search(
-        r'(?:Ship\s*To|Shipping\s*Address|Delivery\s*Address)\s*[:\-]?\s*\n?\s*(.+?)(?:\n\n|\n(?:Phone|Email|Fax|Tel))',
+        r'(?:Ship\s*To|Shipping\s*Address|Delivery\s*Address)\s*[:\-]?\s*\n?\s*(.+?)(?:\n\n|\n(?:Phone|Email|Fax|Tel)|$)',
         raw_text, re.IGNORECASE | re.DOTALL
     )
     if ship_match:

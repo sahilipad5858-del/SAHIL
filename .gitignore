@@ -1,10 +1,11 @@
 # Environment
 backend/.env
 backend/uploads/
-node_modules/
+backend/venv/
 __pycache__/
 
 # Frontend
+frontend/node_modules/
 frontend/dist/
 
 # IDE
