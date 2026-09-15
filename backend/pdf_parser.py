@@ -211,34 +211,31 @@ def generate_email_draft(po_data: POData) -> dict:
 
     subject = f"Purchase Order #{po_num}"
 
-    body = f"""Dear {vendor},
-Greetings from Malpani Group!
-
-Please find attached the Purchase Order (PO) for your reference and necessary action.
-
-PO No.: {po_num}    PO Date: {po_date}
-Plant: {plant}
-Required Delivery Date: {delivery}
-
-Kindly acknowledge receipt of the PO and confirm the delivery schedule at the earliest.
-
-Please ensure the following:
-
-1. Material is supplied strictly as per the PO specifications, quality standards, terms & conditions.
-
-2. Delivery is completed within the committed timeline / scheduled date. Any anticipated delay should be communicated to us in advance.
-
-3. At the time of dispatch, please share LR Copy, Delivery Challan, Tax Invoice, E-Way Bill and other applicable documents.
-
-4. Ensure HSN/SAC Code, PO Number, Supplier GSTIN and our GSTIN are correctly mentioned on the Invoice/Challan as per the PO.
-
-Your cooperation in ensuring timely delivery, proper documentation and PO compliance is highly appreciated.
-
-We look forward to your confirmation and smooth execution of the order.
-
-With Appreciation,
-{buyer}
-"""
+    body = (
+        f"Dear {vendor},\n"
+        f"Greetings from Malpani Group!\n"
+        f"\n"
+        f"Please find attached the Purchase Order (PO) for your reference and necessary action.\n"
+        f"\n"
+        f"PO No.: {po_num}    PO Date: {po_date}\n"
+        f"Plant: {plant}\n"
+        f"Required Delivery Date: {delivery}\n"
+        f"\n"
+        f"Kindly acknowledge receipt of the PO and confirm the delivery schedule at the earliest.\n"
+        f"\n"
+        f"Please ensure the following:\n"
+        f"1.\tMaterial is supplied strictly as per the PO specifications, quality standards, terms & conditions.\n"
+        f"2.\tDelivery is completed within the committed timeline / scheduled date. Any anticipated delay should be communicated to us in advance.\n"
+        f"3.\tAt the time of dispatch, please share LR Copy, Delivery Challan, Tax Invoice, E-Way Bill and other applicable documents.\n"
+        f"4.\tEnsure HSN/SAC Code, PO Number, Supplier GSTIN and our GSTIN are correctly mentioned on the Invoice/Challan as per the PO.\n"
+        f"\n"
+        f"Your cooperation in ensuring timely delivery, proper documentation and PO compliance is highly appreciated.\n"
+        f"\n"
+        f"We look forward to your confirmation and smooth execution of the order.\n"
+        f"\n"
+        f"With Appreciation,\n"
+        f"{buyer}"
+    )
 
     to_email = po_data.vendor_email or ""
 

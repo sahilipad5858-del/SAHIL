@@ -189,10 +189,8 @@ function App() {
               { key: 'po_date', label: 'PO Date' },
               { key: 'plant', label: 'Plant' },
               { key: 'delivery_date', label: 'Delivery Date' },
-              { key: 'payment_terms', label: 'Payment Terms' },
               { key: 'shipping_address', label: 'Shipping Address' },
               { key: 'vendor_email', label: 'Vendor Email' },
-              { key: 'total_amount', label: 'Total Amount' },
             ].map(({ key, label }) => (
               <div className="field" key={key}>
                 <label>{label}</label>
