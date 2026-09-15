@@ -1,0 +1,12 @@
+# Environment
+backend/.env
+backend/uploads/
+node_modules/
+__pycache__/
+
+# Frontend
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
