@@ -238,9 +238,11 @@ def generate_email_draft(po_data: POData) -> dict:
     )
 
     to_email = po_data.vendor_email or ""
+    cc_emails = "sahil.sapate@malpani.com,srpl@malpani.com,mh.purchase@malpani.com"
 
     return {
         "to": to_email,
+        "cc": cc_emails,
         "subject": subject,
         "body": body,
         "po_data": po_data

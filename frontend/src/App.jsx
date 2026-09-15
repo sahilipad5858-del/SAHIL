@@ -53,6 +53,7 @@ function App() {
       setPoData(data.po_data)
       setEmailDraft({
         to: data.email_draft.to,
+        cc: data.email_draft.cc || '',
         subject: data.email_draft.subject,
         body: data.email_draft.body,
       })
@@ -81,6 +82,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: emailDraft.to,
+          cc: emailDraft.cc,
           subject: emailDraft.subject,
           body: emailDraft.body,
           attachment_name: filename ? `PO_${filename}` : undefined,
@@ -235,6 +237,15 @@ function App() {
               />
             </div>
             <div className="field">
+              <label>CC</label>
+              <input
+                type="text"
+                value={emailDraft.cc || ''}
+                onChange={e => handleEmailChange('cc', e.target.value)}
+                placeholder="cc1@example.com, cc2@example.com"
+              />
+            </div>
+            <div className="field">
               <label>Subject</label>
               <input
                 type="text"
@@ -264,6 +275,7 @@ function App() {
           <h2>Email Preview</h2>
           <div className="preview-box">
             <div className="preview-row"><strong>To:</strong> {emailDraft.to}</div>
+            {emailDraft.cc && <div className="preview-row"><strong>CC:</strong> {emailDraft.cc}</div>}
             <div className="preview-row"><strong>Subject:</strong> {emailDraft.subject}</div>
             <div className="preview-row"><strong>Attachment:</strong> {filename ? `PO_${filename}` : 'None'}</div>
             <hr />
