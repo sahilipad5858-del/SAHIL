@@ -187,6 +187,7 @@ function App() {
               { key: 'buyer_name', label: 'Buyer Name' },
               { key: 'po_number', label: 'PO Number' },
               { key: 'po_date', label: 'PO Date' },
+              { key: 'plant', label: 'Plant' },
               { key: 'delivery_date', label: 'Delivery Date' },
               { key: 'payment_terms', label: 'Payment Terms' },
               { key: 'shipping_address', label: 'Shipping Address' },

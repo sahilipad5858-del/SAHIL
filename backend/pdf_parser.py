@@ -47,6 +47,11 @@ def extract_po_data(pdf_path: str) -> POData:
     if m:
         po_data.po_date = m.group(1).strip()
 
+    # --- Plant ---
+    m = re.search(r'Plant\s*[:=\-]?\s*(.+?)(?:\n|$)', full_text, re.IGNORECASE)
+    if m:
+        po_data.plant = m.group(1).strip()
+
     # --- Vendor Name ---
     # "TO, VendorCode-10011388\nMohitComputers" - TO can be mid-line
     m = re.search(
@@ -201,10 +206,8 @@ def generate_email_draft(po_data: POData) -> dict:
     buyer = po_data.buyer_name or "Malpani Group"
     po_num = po_data.po_number or "__________"
     po_date = po_data.po_date or "__________"
-    delivery = po_data.delivery_date or "N/A"
-
-    plant_match = re.search(r'Plant\s*[:=\-]?\s*(.+?)(?:\n|$)', po_data.raw_text or '', re.IGNORECASE)
-    plant = plant_match.group(1).strip() if plant_match else "MPPL – Tea – Sangamner"
+    delivery = po_data.delivery_date or "__________"
+    plant = po_data.plant or "__________"
 
     subject = f"Purchase Order #{po_num}"
 

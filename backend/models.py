@@ -6,6 +6,7 @@ class POData(BaseModel):
     vendor_name: Optional[str] = None
     po_number: Optional[str] = None
     po_date: Optional[str] = None
+    plant: Optional[str] = None
     delivery_date: Optional[str] = None
     payment_terms: Optional[str] = None
     shipping_address: Optional[str] = None
