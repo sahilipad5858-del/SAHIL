@@ -75,17 +75,45 @@
   padding: 3rem;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
   margin-bottom: 1.5rem;
 }
 
 .upload-area:hover {
   border-color: #4361ee;
+  background: #f8f9ff;
+}
+
+.upload-area.drag-over {
+  border-color: #4361ee;
+  background: #eef1ff;
+  transform: scale(1.01);
+}
+
+.upload-icon {
+  color: #4361ee;
+  margin-bottom: 1rem;
+}
+
+.upload-area.drag-over .upload-icon {
+  transform: scale(1.15);
 }
 
 .file-name {
   font-weight: 600;
   color: #4361ee;
+  margin-bottom: 0.3rem;
+}
+
+.file-hint {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.browse-link {
+  color: #4361ee;
+  text-decoration: underline;
+  font-weight: 600;
 }
 
 /* Fields grid */
@@ -225,4 +253,39 @@
 .success-card p {
   margin-bottom: 1.5rem;
   color: #555;
+}
+
+/* Raw text section */
+.raw-text-section {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #4361ee;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0;
+  text-decoration: underline;
+}
+
+.btn-text:hover {
+  color: #3651d4;
+}
+
+.raw-text-box {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 0.5rem;
 }

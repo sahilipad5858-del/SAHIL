@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import './App.css'
 
 function App() {
-  const [step, setStep] = useState(1) // 1: Upload, 2: Review Fields, 3: Edit Email, 4: Preview
+  const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [fileId, setFileId] = useState(null)
   const [filename, setFilename] = useState('')
@@ -11,6 +11,32 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sendResult, setSendResult] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [showRawText, setShowRawText] = useState(false)
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(false)
+    const droppedFile = e.dataTransfer.files[0]
+    if (droppedFile && droppedFile.type === 'application/pdf') {
+      setFile(droppedFile)
+    } else {
+      setError('Only PDF files are accepted')
+    }
+  }, [])
 
   const handleUpload = async () => {
     if (!file) return
@@ -104,7 +130,13 @@ function App() {
       {step === 1 && (
         <div className="card">
           <h2>Upload Purchase Order</h2>
-          <div className="upload-area" onClick={() => document.getElementById('file-input').click()}>
+          <div
+            className={`upload-area ${dragOver ? 'drag-over' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('file-input').click()}
+          >
             <input
               id="file-input"
               type="file"
@@ -113,9 +145,30 @@ function App() {
               style={{ display: 'none' }}
             />
             {file ? (
-              <p className="file-name">{file.name}</p>
+              <>
+                <div className="upload-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                  </svg>
+                </div>
+                <p className="file-name">{file.name}</p>
+                <p className="file-hint">Click or drop to replace</p>
+              </>
             ) : (
-              <p>Click to select a PDF file</p>
+              <>
+                <div className="upload-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <p>Drag & drop a PDF here, or <span className="browse-link">browse</span></p>
+              </>
             )}
           </div>
           <button className="btn primary" onClick={handleUpload} disabled={!file || loading}>
@@ -149,6 +202,16 @@ function App() {
               </div>
             ))}
           </div>
+          {poData.raw_text && (
+            <div className="raw-text-section">
+              <button className="btn-text" onClick={() => setShowRawText(!showRawText)}>
+                {showRawText ? 'Hide' : 'Show'} Raw Extracted Text
+              </button>
+              {showRawText && (
+                <pre className="raw-text-box">{poData.raw_text}</pre>
+              )}
+            </div>
+          )}
           <div className="btn-group">
             <button className="btn secondary" onClick={() => setStep(1)}>Back</button>
             <button className="btn primary" onClick={() => setStep(3)}>Next: Edit Email</button>
