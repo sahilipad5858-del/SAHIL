@@ -79,7 +79,7 @@ function App() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`/api/send-email?file_id=${fileId || ''}`, {
+      const res = await fetch(`/api/generate-eml?file_id=${fileId || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,8 +90,16 @@ function App() {
           attachment_name: filename ? `PO_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}` : undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Send failed')
+      if (!res.ok) throw new Error('Failed to generate email')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'email.eml'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
       setSent(true)
     } catch (e) {
       setError(e.message)
@@ -114,9 +122,14 @@ function App() {
     return (
       <div className="app">
         <div className="success-card">
-          <h2>Email Sent Successfully!</h2>
-          <p>Purchase Order has been sent to {emailDraft.to}</p>
-          {emailDraft.cc && <p>CC: {emailDraft.cc}</p>}
+          <h2>Email Ready!</h2>
+          <p>Your email with the PO attached has downloaded.</p>
+          <p className="success-hint">Click the downloaded file below to open it in your email app</p>
+          <div className="success-steps">
+            <div className="success-step"><span>1</span> Click the downloaded <strong>email.eml</strong> file</div>
+            <div className="success-step"><span>2</span> Your email app opens with PO attached</div>
+            <div className="success-step"><span>3</span> Review and click Send</div>
+          </div>
           <button className="btn primary" onClick={handleReset}>Send Another PO</button>
         </div>
       </div>
