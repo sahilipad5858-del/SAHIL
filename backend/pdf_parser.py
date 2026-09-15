@@ -197,49 +197,44 @@ def extract_po_data(pdf_path: str) -> POData:
 
 def generate_email_draft(po_data: POData) -> dict:
     """Generate a draft email based on extracted PO data."""
-    vendor = po_data.vendor_name or "Vendor"
-    buyer = po_data.buyer_name or "Sir/Madam"
-    po_num = po_data.po_number or "N/A"
-    po_date = po_data.po_date or "N/A"
+    vendor = po_data.vendor_name or "Sir/Madam"
+    buyer = po_data.buyer_name or "Malpani Group"
+    po_num = po_data.po_number or "__________"
+    po_date = po_data.po_date or "__________"
     delivery = po_data.delivery_date or "N/A"
-    terms = po_data.payment_terms or "N/A"
-    address = po_data.shipping_address or "N/A"
-    total = po_data.total_amount or "N/A"
 
-    subject = f"Acknowledgment of Purchase Order #{po_num}"
+    plant_match = re.search(r'Plant\s*[:=\-]?\s*(.+?)(?:\n|$)', po_data.raw_text or '', re.IGNORECASE)
+    plant = plant_match.group(1).strip() if plant_match else "MPPL – Tea – Sangamner"
 
-    items_text = ""
-    if po_data.items:
-        for i, item in enumerate(po_data.items, 1):
-            desc = item.get('description', 'N/A')
-            qty = item.get('quantity', 'N/A')
-            rate = item.get('rate', 'N/A')
-            val = item.get('value', 'N/A')
-            items_text += f"  {i}. {desc} - Qty: {qty}, Rate: INR {rate}, Value: INR {val}\n"
-    else:
-        items_text = "  (Please refer to attached PO)\n"
+    subject = f"Purchase Order #{po_num}"
 
-    body = f"""Dear {buyer},
+    body = f"""Dear {vendor},
+Greetings from Malpani Group!
 
-Thank you for your Purchase Order #{po_num} dated {po_date}.
+Please find attached the Purchase Order (PO) for your reference and necessary action.
 
-We acknowledge receipt of your order and confirm the following details:
+PO No.: {po_num}    PO Date: {po_date}
+Plant: {plant}
+Required Delivery Date: {delivery}
 
-PO Number: {po_num}
-PO Date: {po_date}
-Vendor: {vendor}
-Delivery Date: {delivery}
-Payment Terms: {terms}
-Shipping Address: {address}
+Kindly acknowledge receipt of the PO and confirm the delivery schedule at the earliest.
 
-Order Items:
-{items_text}
-Total Amount: INR {total}
+Please ensure the following:
 
-We will process your order promptly. If you have any questions, please don't hesitate to reach out.
+1. Material is supplied strictly as per the PO specifications, quality standards, terms & conditions.
 
-Best Regards,
-{vendor}
+2. Delivery is completed within the committed timeline / scheduled date. Any anticipated delay should be communicated to us in advance.
+
+3. At the time of dispatch, please share LR Copy, Delivery Challan, Tax Invoice, E-Way Bill and other applicable documents.
+
+4. Ensure HSN/SAC Code, PO Number, Supplier GSTIN and our GSTIN are correctly mentioned on the Invoice/Challan as per the PO.
+
+Your cooperation in ensuring timely delivery, proper documentation and PO compliance is highly appreciated.
+
+We look forward to your confirmation and smooth execution of the order.
+
+With Appreciation,
+{buyer}
 """
 
     to_email = po_data.vendor_email or ""
