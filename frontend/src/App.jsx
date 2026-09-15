@@ -73,30 +73,13 @@ function App() {
     setEmailDraft(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSend = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch(`/api/send-email?file_id=${fileId || ''}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: emailDraft.to,
-          cc: emailDraft.cc,
-          subject: emailDraft.subject,
-          body: emailDraft.body,
-          attachment_name: filename ? `PO_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}` : undefined,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Send failed')
-      setSendResult(data)
-      setStep(5)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+  const handleSend = () => {
+    const to = encodeURIComponent(emailDraft.to || '')
+    const cc = encodeURIComponent(emailDraft.cc || '')
+    const subject = encodeURIComponent(emailDraft.subject || '')
+    const body = encodeURIComponent(emailDraft.body || '')
+    const mailtoUrl = `mailto:${to}?cc=${cc}&subject=${subject}&body=${body}`
+    window.location.href = mailtoUrl
   }
 
   const reset = () => {
@@ -281,21 +264,17 @@ function App() {
             <hr />
             <pre className="preview-body">{emailDraft.body}</pre>
           </div>
+          {filename && (
+            <div className="attachment-note">
+              <strong>Attachment:</strong> PO_{filename.replace(/[^a-zA-Z0-9._-]/g, '_')} (attach manually in email app)
+            </div>
+          )}
           <div className="btn-group">
             <button className="btn secondary" onClick={() => setStep(3)}>Back</button>
-            <button className="btn danger" onClick={handleSend} disabled={loading}>
-              {loading ? 'Sending...' : 'Approve & Send'}
+            <button className="btn primary" onClick={handleSend}>
+              Open in Email App
             </button>
           </div>
-        </div>
-      )}
-
-      {/* STEP 5: Success */}
-      {step === 5 && (
-        <div className="card success-card">
-          <h2>Email Sent Successfully!</h2>
-          <p>{sendResult?.message}</p>
-          <button className="btn primary" onClick={reset}>Send Another PO</button>
         </div>
       )}
     </div>
