@@ -73,7 +73,15 @@ function App() {
     setEmailDraft(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSend = async () => {
+  const handleSendMailto = () => {
+    const to = encodeURIComponent(emailDraft.to || '')
+    const cc = encodeURIComponent(emailDraft.cc || '')
+    const subject = encodeURIComponent(emailDraft.subject || '')
+    const body = encodeURIComponent(emailDraft.body || '')
+    window.location.href = `mailto:${to}?cc=${cc}&subject=${subject}&body=${body}`
+  }
+
+  const handleSendEml = async () => {
     try {
       const res = await fetch(`/api/generate-eml?file_id=${fileId || ''}`, {
         method: 'POST',
@@ -285,13 +293,16 @@ function App() {
           </div>
           {filename && (
             <div className="attachment-note">
-              <strong>Attachment:</strong> PO_{filename.replace(/[^a-zA-Z0-9._-]/g, '_')} (attach manually in email app)
+              <strong>Attachment:</strong> PO_{filename.replace(/[^a-zA-Z0-9._-]/g, '_')}
             </div>
           )}
           <div className="btn-group">
             <button className="btn secondary" onClick={() => setStep(3)}>Back</button>
-            <button className="btn primary" onClick={handleSend}>
-              Open in Email App
+            <button className="btn primary" onClick={handleSendMailto}>
+              Open Email App
+            </button>
+            <button className="btn danger" onClick={handleSendEml}>
+              Download with PO Attached
             </button>
           </div>
         </div>
